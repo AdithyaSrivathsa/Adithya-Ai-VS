@@ -1,28 +1,29 @@
-import pyttsx3
 import datetime
+from socket import SocketType
+from timeit import repeat
 import wikipedia
 import pywhatkit
 import webbrowser
-import speech_recognition
+import speech_recognition as sr
 import requests
 import pyautogui
 import os
 from bs4 import BeautifulSoup
 from time import sleep
+from gtts import gTTS
+from time import ctime
+import keyboard
+import json
+from threading import Event
 
-engine = pyttsx3.init("sapi5")
-voices = engine.getProperty("voices")
-engine.setProperty("voice", voices[0].id)
-engine.setProperty("rate", 150)
-
-
-def speak(audio):
-    engine.say(audio)
-    engine.runAndWait()
+def speak(audioString):
+    tts = gTTS(text=audioString, lang='en')
+    tts.save("audio.mp3")
+    os.system("mpg321 audio.mp3")
 
 def takeCommand():
-    r = speech_recognition.Recognizer()
-    with speech_recognition.Microphone() as source:
+    r = sr.Recognizer()
+    with sr.Microphone() as source:
         print("Listening...")
         r.pause_threshold = 4
         r.energy_threshold = 300
@@ -42,17 +43,58 @@ def alarm(query):
     timehere.write(query)
     timehere.close()
     os.startfile("alarm.py")
+    
+def news():
+    api_dict = {"business" : "https://newsapi.org/v2/top-headlines?country=in&category=business&apiKey=1f7f17e1e6434b0b8731210961274768",
+            "entertainment" : "https://newsapi.org/v2/top-headlines?country=us&category=entertainment&apiKey=1f7f17e1e6434b0b8731210961274768",
+            "health" : "https://newsapi.org/v2/top-headlines?country=us&category=health&apiKey=1f7f17e1e6434b0b8731210961274768",
+            "science" :"https://newsapi.org/v2/top-headlines?country=us&category=science&apiKey=1f7f17e1e6434b0b8731210961274768",
+            "sports" :"https://newsapi.org/v2/top-headlines?country=us&category=sports&apiKey=1f7f17e1e6434b0b8731210961274768",
+            "technology" :"https://newsapi.org/v2/top-headlines?country=us&category=technology&apiKey=1f7f17e1e6434b0b8731210961274768"
+}
 
+        
+    content = None
+    url = None
+    speak("Which field news do you want, [business], [health], [technology], [sports], [entertainment] or [science]")
+    field = input("Type field news that you want: ")
+    for key ,value in api_dict.items():
+        if key.lower() in field.lower():
+            url = value
+            print(url)
+            print("News found!")
+            break
+        else:
+            url = True
+    if url is True:
+        print("News not found")
+
+    news = requests.get(url).text
+    news = json.loads(news)
+    speak("This is the news for today")
+
+    arts = news["articles"]
+    for articles in arts :
+        article = articles["title"]
+        print(article)
+        speak(article)
+        news_url = articles["url"]
+        print(f"For more info visit: {news_url}")
+    stop_run = Event()
+    keyboard.on_press_key('esc', callback=lambda _: stop_run.set())
+    while not stop_run.is_set():
+        news()
+        
 def searchGoogle(query):
-    import wikipedia as googleScrap
-    speak("This is what I found")
+    import wikipedia as googlescrap
+    speak("This is what I found")   
     try:
         pywhatkit.search(query)
-        result = googleScrap.summary(query, 1)
+        result = googlescrap.summary(query, 1)
         speak(result)
 
     except:
-        speak("Did not find anything about that, sorry")
+        speak("No speakable output")
 
 
 def searchYoutube(query):
@@ -73,7 +115,7 @@ running = True
 if __name__ == "__main__":
     while running:
         query = takeCommand().lower()
-        if "dumb" in query:
+        if "friday" in query:
             hour = int(datetime.datetime.now().hour)
             if 0 <= hour <= 12:
                 speak("Yes sir?")
@@ -153,26 +195,26 @@ if __name__ == "__main__":
                 speak("Done sir")
     #audio controls...............................................................................................................................
             elif "pause" in query:
-                pyautogui.click(1805, 1058, duration = 1)
-                pyautogui.click(1729, 381, duration = 1)
+                pyautogui.click(1237, 13, duration = 1)
+                pyautogui.click(1376, 362, duration = 1)
                 speak("paused")
 
             elif "play" in query:
-                pyautogui.click(1805, 1058, duration = 1)
-                pyautogui.click(1729, 381, duration = 1)
+                pyautogui.click(1237, 13, duration = 1)
+                pyautogui.click(1376, 362, duration = 1)
                 speak("playing")
 
             elif "volume down" in query:
-                pyautogui.press("volumedown")
+                pyautogui.keyDown("volumedown")
 
             elif "volume up" in query:
-                pyautogui.press("volumeup")
+                pyautogui.keyDown("volumeup")
     #apps....................................................................................................................................                
             elif "play music" in query:
                 speak("Launching sir")
-                pyautogui.hotkey("ctrl", "esc")
+                pyautogui.click(1207, 14, duration = 1.5)
                 sleep(0.5)
-                pyautogui.hotkey("y")
+                pyautogui.typewrite("youtube music")
                 sleep(0.5)
                 pyautogui.hotkey("enter")
                 sleep(6)
@@ -182,17 +224,48 @@ if __name__ == "__main__":
 
             elif "launch fortnite" in query:
                 speak("Launching sir")
-                pyautogui.hotkey("ctrl", "esc")
+                pyautogui.click(1207, 14, duration = 1.5)
                 sleep(0.5)
-                pyautogui.hotkey("e")
+                pyautogui.typewrite("nvidia")
                 sleep(0.5)
                 pyautogui.hotkey("enter")
-                sleep(12)
-                pyautogui.click(420, 542, duration = 1)
 
+            elif "text" in query:
+                speak("Who do you want to text")
+                a = input("Who do you want to text: ")
+                speak("Ok, which app do you want to use?")
+                b = takeCommand()
+                speak("What is your message?")
+                c = takeCommand()
+                speak(f"Ok, texting {a}")
+                pyautogui.click(1207, 14, duration = 1.5)
+                sleep(0.5)
+                pyautogui.typewrite(b)
+                sleep(1.5)
+                pyautogui.hotkey("enter")
+                sleep(7)
+                pyautogui.click(214, 125, duration = 1)
+                sleep(0.5)
+                pyautogui.typewrite(a)
+                sleep(0.5)
+                if b == "whatsapp":
+                    pyautogui.click(154, 205, duration = 1)
+                    sleep(0.5)
+                    pyautogui.click(727, 759, duration = 1)
+                    pyautogui.typewrite(c)
+                    sleep(0.5)
+                    pyautogui.hotkey("enter")
+                else:
+                    pyautogui.click(223, 323, duration = 1)
+                    sleep(0.5)
+                    pyautogui.click(784, 775, duration = 1)
+                    pyautogui.typewrite(c)
+                    sleep(0.5)
+                    pyautogui.hotkey("enter")
+            
             elif "open whatsapp" in query:
                 speak("Launching sir")
-                pyautogui.hotkey("ctrl", "esc")
+                pyautogui.click(1207, 14, duration = 1.5)
                 sleep(0.5)
                 pyautogui.typewrite("whatsapp")
                 sleep(0.5)
@@ -200,71 +273,75 @@ if __name__ == "__main__":
 
             elif "call mom" in query:
                 speak("Calling mom")
-                pyautogui.hotkey("ctrl", "esc")
+                pyautogui.click(1207, 14, duration = 1.5)
                 sleep(0.5)
                 pyautogui.typewrite("whatsapp")
                 sleep(0.5)
                 pyautogui.hotkey("enter")
                 sleep(9)
-                pyautogui.click(194, 109, duration = 1)
+                pyautogui.click(333, 109, duration = 1)
                 sleep(0.5)
                 pyautogui.typewrite("Amma")
                 sleep(0.5)
-                pyautogui.click(205, 243, duration = 1)
+                pyautogui.click(154, 215, duration = 1)
                 sleep(0.5)
-                pyautogui.click(1768, 60, duration = 1)
+                pyautogui.click(1283, 54, duration = 1)
 
             elif "call dad" in query:
                 speak("Calling dad")
-                pyautogui.hotkey("ctrl", "esc")
+                pyautogui.click(1207, 14, duration = 1.5)
                 sleep(0.5)
                 pyautogui.typewrite("whatsapp")
                 sleep(0.5)
                 pyautogui.hotkey("enter")
                 sleep(9)
-                pyautogui.click(194, 109, duration = 1)
+                pyautogui.click(333, 109, duration = 1)
                 sleep(0.5)
                 pyautogui.typewrite("Appa")
                 sleep(0.5)
-                pyautogui.click(205, 243, duration = 1)
+                pyautogui.click(154, 215, duration = 1)
                 sleep(0.5)
-                pyautogui.click(1768, 60, duration = 1)
+                pyautogui.click(1283, 54, duration = 1)
 
             elif "call grandma" in query:
                 speak("Calling grandma")
-                pyautogui.hotkey("ctrl", "esc")
+                pyautogui.click(1207, 14, duration = 1.5)
                 sleep(0.5)
                 pyautogui.typewrite("whatsapp")
                 sleep(0.5)
                 pyautogui.hotkey("enter")
                 sleep(9)
-                pyautogui.click(194, 109, duration = 1)
+                pyautogui.click(333, 109, duration = 1)
                 sleep(0.5)
                 pyautogui.typewrite("Veena Ajji")
                 sleep(0.5)
-                pyautogui.click(205, 243, duration = 1)
+                pyautogui.click(154, 215, duration = 1)
                 sleep(0.5)
-                pyautogui.click(1768, 60, duration = 1)
+                pyautogui.click(1283, 54, duration = 1)
 
             elif "call sister" in query:
                 speak("Calling sister")
-                pyautogui.hotkey("ctrl", "esc")
+                pyautogui.click(1207, 14, duration = 1.5)
+                sleep(0.5)
+                pyautogui.keyUp("command")
+                sleep(0.5)
+                pyautogui.keyUp("spacebar")
                 sleep(0.5)
                 pyautogui.typewrite("whatsapp")
                 sleep(0.5)
                 pyautogui.hotkey("enter")
                 sleep(9)
-                pyautogui.click(194, 109, duration = 1)
+                pyautogui.click(333, 109, duration = 1)
                 sleep(0.5)
                 pyautogui.typewrite("Sis(BTS Obsessed)")
                 sleep(0.5)
-                pyautogui.click(205, 243, duration = 1)
+                pyautogui.click(154, 215, duration = 1)
                 sleep(0.5)
-                pyautogui.click(1768, 60, duration = 1)
+                pyautogui.click(1283, 54, duration = 1)
 
             elif "brave" in query:
                 speak("Launching sir")
-                pyautogui.hotkey("ctrl", "esc")
+                pyautogui.click(1207, 14, duration = 1.5)
                 sleep(0.5)
                 pyautogui.typewrite("brave")
                 sleep(0.5)
@@ -272,31 +349,31 @@ if __name__ == "__main__":
 
             elif "mail" in query:
                 speak("Launching sir")
-                pyautogui.hotkey("ctrl", "esc")
+                pyautogui.click(1207, 14, duration = 1.5)
                 sleep(0.5)
                 pyautogui.typewrite("mail")
                 sleep(0.5)
                 pyautogui.hotkey("enter")
 
-            elif "control panel" in query:
+            elif "settings" in query:
                 speak("Launching sir")
-                pyautogui.hotkey("ctrl", "esc")
+                pyautogui.click(1207, 14, duration = 1.5)
                 sleep(0.5)
-                pyautogui.typewrite("control panel")
+                pyautogui.typewrite("system preferences")
                 sleep(0.5)
                 pyautogui.hotkey("enter")    
 
             elif "file explorer" in query:
                 speak("Launching sir")
-                pyautogui.hotkey("ctrl", "esc")
+                pyautogui.click(1207, 14, duration = 1.5)
                 sleep(0.5)
                 pyautogui.typewrite("file explorer")
                 sleep(0.5)
                 pyautogui.hotkey("enter")
 
-            elif "skype" in query:
+            elif "open skype" in query:
                 speak("Launching sir")
-                pyautogui.hotkey("ctrl", "esc")
+                pyautogui.click(1207, 14, duration = 1.5)
                 sleep(0.5)
                 pyautogui.typewrite("skype")
                 sleep(0.5)
@@ -304,6 +381,42 @@ if __name__ == "__main__":
             
             elif "close application" in query:
                 speak("Closing Sir")
-                pyautogui.hotkey("alt", "f4")
-
+                pyautogui.hotkey("option", "command", "esc")
                 
+            elif "spam" in query:
+                speak("Who do you want to spam")
+                a = input("Who do y ou want to spam: ")
+                speak("Ok, which app do you want to use?")
+                b = takeCommand()
+                speak(f"Ok, spamming {a}")
+                pyautogui.click(1207, 14, duration = 1.5)
+                sleep(2)
+                pyautogui.typewrite(b)
+                sleep(2)
+                pyautogui.hotkey("enter")
+                sleep(7)
+                pyautogui.click(214, 125, duration = 1)
+                sleep(0.5)
+                pyautogui.typewrite(a)
+                sleep(0.5)
+                pyautogui.click(223, 323, duration = 1)
+                sleep(0.5)
+                pyautogui.click(784, 775, duration = 1)
+                sleep(0.5)
+                pyautogui.typewrite(a)
+                sleep(0.5)
+                pyautogui.hotkey("enter")
+                speak("spamming sir")
+                i = 1
+                while i <= 100:
+                    pyautogui.typewrite("l bozo + ratio")
+                    pyautogui.hotkey("enter")
+                    i += 1
+                i = False
+                
+            elif "news" in query:
+                news()
+                
+            elif keyboard.is_pressed('q'):
+                print('You Pressed the q Key!')
+                breakpoint
